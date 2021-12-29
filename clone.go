@@ -88,9 +88,9 @@ func Clone(c Config) error {
 	apiDir := "api"
 
 	// Generate API directory in target project where we are calling `go generate`
-	dstApiPath := filepath.Join(".", apiDir)
+	dstApiPath := filepath.Join(config.TargetDir, apiDir)
 
-	srcApiPath := fmt.Sprintf("%s/%s", srcRoot, apiDir)
+	srcApiPath := filepath.Join(srcRoot, apiDir)
 	srcApiDirEntries, err := srcFilesystem.ReadDir(srcApiPath)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read src api dir %s", srcApiPath)

@@ -108,7 +108,7 @@ func copyLocalPackage(localPackage string) error {
 	relativePackagePath := strings.TrimPrefix(localPackage, srcModule)
 	relativePackagePath = strings.Trim(relativePackagePath, "/")
 	srcPackagePath := filepath.Join(srcRoot, relativePackagePath)
-	dstPackagePath := filepath.Join(".", relativePackagePath)
+	dstPackagePath := filepath.Join(config.TargetDir, relativePackagePath)
 
 	err := copyDirectory(srcPackagePath, dstPackagePath)
 	if err != nil {

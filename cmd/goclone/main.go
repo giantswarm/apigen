@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/pkg/errors"
 
@@ -18,6 +19,7 @@ func main() {
 	repoPtr := flag.String("repo", "cluster-api", "GitHub repo name")
 	tagPtr := flag.String("tag", "", "Project version (GitHub release/tag name)")
 	debugPtr := flag.Bool("debug", false, "Run in debug mode")
+	targetDirPtr := flag.String("target-dir", "", "Where to generate code")
 	flag.Parse()
 
 	if debugPtr != nil && *debugPtr {
@@ -44,6 +46,15 @@ func main() {
 		if tagPtr != nil && *tagPtr != "" {
 			config.Tag = *tagPtr
 		}
+	}
+
+	if targetDirPtr != nil && *targetDirPtr != "" {
+		if _, err := os.Stat(*targetDirPtr); os.IsNotExist(err) {
+			printError(errors.Errorf("Target directory %s not found", *targetDirPtr))
+			return
+		}
+
+		config.TargetDir = *targetDirPtr
 	}
 
 	err := apigen.Clone(config)

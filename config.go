@@ -5,6 +5,7 @@ type Config struct {
 	Org       string
 	Repo      string
 	Tag       string
+	TargetDir string
 
 	DebugMode bool
 }

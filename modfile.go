@@ -3,6 +3,7 @@ package apigen
 import (
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -48,7 +49,7 @@ func readSrcModFile(modFilePath string) error {
 }
 
 func readDstModFile() error {
-	modFilePath := "go.mod"
+	modFilePath := filepath.Join(config.TargetDir, "go.mod")
 	modFileContents, err := os.ReadFile(modFilePath)
 	if err != nil {
 		return errors.Wrap(err, "failed to read go.mod file")
@@ -107,7 +108,7 @@ func fixDstModFile() error {
 		return errors.Wrap(err, "failed to format dst go.mod")
 	}
 
-	modFilePath := "go.mod"
+	modFilePath := filepath.Join(config.TargetDir, "go.mod")
 	err = os.WriteFile(modFilePath, dstGoModContents, 0664)
 	if err != nil {
 		return errors.Wrap(err, "failed to update dst go.mod")

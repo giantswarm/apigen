@@ -2,7 +2,6 @@ package apigen
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -63,19 +62,11 @@ func Clone(c Config) error {
 	}
 
 	if _, err := os.Stat(filepath.Join(config.TargetDir, "go.mod")); os.IsNotExist(err) {
-		log.Println("No go.mod found in target directory, copying from source")
-		source, err := srcFilesystem.Open(filepath.Join(srcRoot, "go.mod"))
-		if err != nil {
+		log.Println("No go.mod found in target directory, generating new")
+		modContents := fmt.Sprintf("module %s\n\ngo %s\n", srcModFile.Module.Mod.Path, srcModFile.Go.Version)
+		if err := os.WriteFile(filepath.Join(config.TargetDir, "go.mod"), []byte(modContents), 0664); err != nil {
 			return err
 		}
-		defer source.Close()
-
-		destination, err := os.Create(filepath.Join(config.TargetDir, "go.mod"))
-		if err != nil {
-			return err
-		}
-		defer destination.Close()
-		io.Copy(destination, source)
 	}
 
 	err = readDstModFile()

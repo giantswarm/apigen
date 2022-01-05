@@ -22,6 +22,9 @@ var rootCmd = &cobra.Command{
   # Copy from a local repo
   goclone --local-repo ../cluster-api --target-dir ./out/
 
+	# Ignore files matching pattern
+  goclone --local-repo ../cluster-api --target-dir ./out/ --exclude "*_test.go" --exclude "doc.go"
+
   # Copy additional directories
   goclone --org kubernetes-sigs --repo cluster-api-provider-aws --tag v1.0.0 --target-dir ./out --additional-dir exp/api`,
 	SilenceUsage: true,
@@ -51,6 +54,7 @@ func init() {
 	rootCmd.Flags().StringVar(&config.Tag, "tag", "", "Project version (GitHub release/tag name)")
 	rootCmd.Flags().StringVar(&config.TargetDir, "target-dir", "", "Where to generate code")
 	rootCmd.Flags().StringArrayVar(&config.AdditionalDirs, "additional-dir", []string{}, "additional directories to copy from source repo")
+	rootCmd.Flags().StringArrayVar(&config.ExcludeGlobs, "exclude", []string{}, "glob patterns to exclude")
 	rootCmd.Flags().BoolVar(&config.DebugMode, "debug", false, "Run in debug mode")
 }
 

@@ -13,6 +13,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/storage/memory"
+	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
 	"golang.org/x/mod/modfile"
 )
@@ -150,6 +151,14 @@ func copyFile(srcPath, dstPath string) (err error) {
 	srcFileInfo, err := srcFilesystem.Stat(srcPath)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get stat for file %s", srcPath)
+	}
+
+	// Exclude files based on glob pattern
+	for _, exclude := range config.ExcludeGlobs {
+		g := glob.MustCompile(exclude)
+		if g.Match(srcFileInfo.Name()) {
+			return nil
+		}
 	}
 
 	// Opening source file for reading. This file can be stored in memory-based

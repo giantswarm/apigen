@@ -7,6 +7,7 @@ type Config struct {
 	Tag            string
 	TargetDir      string
 	AdditionalDirs []string
+	ExcludeGlobs   []string
 
 	DebugMode bool
 }

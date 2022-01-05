@@ -2,6 +2,7 @@ package apigen
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -61,58 +62,56 @@ func Clone(c Config) error {
 		return errors.Wrapf(err, "failed to read src go.mod")
 	}
 
+	if _, err := os.Stat(filepath.Join(config.TargetDir, "go.mod")); os.IsNotExist(err) {
+		log.Println("No go.mod found in target directory, copying from source")
+		source, err := srcFilesystem.Open(filepath.Join(srcRoot, "go.mod"))
+		if err != nil {
+			return err
+		}
+		defer source.Close()
+
+		destination, err := os.Create(filepath.Join(config.TargetDir, "go.mod"))
+		if err != nil {
+			return err
+		}
+		defer destination.Close()
+		io.Copy(destination, source)
+	}
+
 	err = readDstModFile()
 	if err != nil {
 		return errors.Wrapf(err, "failed to read dst go.mod")
 	}
 
-	// tag := "v1.0.2"
-	//
-	// memStorage := memory.NewStorage()
-	// memFs := memfs.New()
-	//
-	// cloneOptions := git.CloneOptions{
-	// 	URL:           fmt.Sprintf("https://github.com/%s/%s", org, repo),
-	// 	ReferenceName: plumbing.NewTagReferenceName(tag),
-	// }
-	// _, err := git.Clone(memStorage, memFs, &cloneOptions)
-	// if err != nil {
-	// 	panic(err)
-	// }
+	dirs := append(config.AdditionalDirs, "api")
+	for _, dir := range dirs {
+		// Generate API directory in target project where we are calling `go generate`
+		dstApiPath := filepath.Join(config.TargetDir, dir)
 
-	// List of subdirectories in the repo where to look for api package
-	// srcDirs := []string{
-	// 	"/",
-	// }
+		srcApiPath := filepath.Join(srcRoot, dir)
+		srcApiDirEntries, err := srcFilesystem.ReadDir(srcApiPath)
+		if err != nil {
+			return errors.Wrapf(err, "failed to read src api dir %s", srcApiPath)
+		}
 
-	apiDir := "api"
+		for _, srcApiDirEntry := range srcApiDirEntries {
+			if srcApiDirEntry.IsDir() && strings.HasPrefix(srcApiDirEntry.Name(), "v") {
+				apiVersionName := srcApiDirEntry.Name()
+				srcApiVersionDirPath := filepath.Join(srcApiPath, apiVersionName)
+				if config.DebugMode {
+					log.Printf("Found API version %s", apiVersionName)
+				}
 
-	// Generate API directory in target project where we are calling `go generate`
-	dstApiPath := filepath.Join(config.TargetDir, apiDir)
-
-	srcApiPath := filepath.Join(srcRoot, apiDir)
-	srcApiDirEntries, err := srcFilesystem.ReadDir(srcApiPath)
-	if err != nil {
-		return errors.Wrapf(err, "failed to read src api dir %s", srcApiPath)
-	}
-
-	for _, srcApiDirEntry := range srcApiDirEntries {
-		if srcApiDirEntry.IsDir() && strings.HasPrefix(srcApiDirEntry.Name(), "v") {
-			apiVersionName := srcApiDirEntry.Name()
-			srcApiVersionDirPath := filepath.Join(srcApiPath, apiVersionName)
-			if config.DebugMode {
-				log.Printf("Found API version %s", apiVersionName)
-			}
-
-			// Copy API version directory
-			dstApiVersionDirPath := filepath.Join(dstApiPath, apiVersionName)
-			err = copyDirectory(srcApiVersionDirPath, dstApiVersionDirPath)
-			if err != nil {
-				return errors.Wrapf(err, "failed to copy api version from %s to %s", srcApiVersionDirPath, dstApiVersionDirPath)
-			}
-		} else {
-			if config.DebugMode {
-				log.Printf("Skipping entry %s", srcApiDirEntry.Name())
+				// Copy API version directory
+				dstApiVersionDirPath := filepath.Join(dstApiPath, apiVersionName)
+				err = copyDirectory(srcApiVersionDirPath, dstApiVersionDirPath)
+				if err != nil {
+					return errors.Wrapf(err, "failed to copy api version from %s to %s", srcApiVersionDirPath, dstApiVersionDirPath)
+				}
+			} else {
+				if config.DebugMode {
+					log.Printf("Skipping entry %s", srcApiDirEntry.Name())
+				}
 			}
 		}
 	}

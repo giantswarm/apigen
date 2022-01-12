@@ -13,6 +13,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/storage/memory"
+	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
 	"golang.org/x/mod/modfile"
 )
@@ -61,58 +62,48 @@ func Clone(c Config) error {
 		return errors.Wrapf(err, "failed to read src go.mod")
 	}
 
+	if _, err := os.Stat(filepath.Join(config.TargetDir, "go.mod")); os.IsNotExist(err) {
+		log.Println("No go.mod found in target directory, generating new")
+		modContents := fmt.Sprintf("module %s\n\ngo %s\n", srcModFile.Module.Mod.Path, srcModFile.Go.Version)
+		if err := os.WriteFile(filepath.Join(config.TargetDir, "go.mod"), []byte(modContents), 0664); err != nil {
+			return err
+		}
+	}
+
 	err = readDstModFile()
 	if err != nil {
 		return errors.Wrapf(err, "failed to read dst go.mod")
 	}
 
-	// tag := "v1.0.2"
-	//
-	// memStorage := memory.NewStorage()
-	// memFs := memfs.New()
-	//
-	// cloneOptions := git.CloneOptions{
-	// 	URL:           fmt.Sprintf("https://github.com/%s/%s", org, repo),
-	// 	ReferenceName: plumbing.NewTagReferenceName(tag),
-	// }
-	// _, err := git.Clone(memStorage, memFs, &cloneOptions)
-	// if err != nil {
-	// 	panic(err)
-	// }
+	dirs := append(config.AdditionalDirs, "api")
+	for _, dir := range dirs {
+		// Generate API directory in target project where we are calling `go generate`
+		dstApiPath := filepath.Join(config.TargetDir, dir)
 
-	// List of subdirectories in the repo where to look for api package
-	// srcDirs := []string{
-	// 	"/",
-	// }
+		srcApiPath := filepath.Join(srcRoot, dir)
+		srcApiDirEntries, err := srcFilesystem.ReadDir(srcApiPath)
+		if err != nil {
+			return errors.Wrapf(err, "failed to read src api dir %s", srcApiPath)
+		}
 
-	apiDir := "api"
+		for _, srcApiDirEntry := range srcApiDirEntries {
+			if srcApiDirEntry.IsDir() && strings.HasPrefix(srcApiDirEntry.Name(), "v") {
+				apiVersionName := srcApiDirEntry.Name()
+				srcApiVersionDirPath := filepath.Join(srcApiPath, apiVersionName)
+				if config.DebugMode {
+					log.Printf("Found API version %s", apiVersionName)
+				}
 
-	// Generate API directory in target project where we are calling `go generate`
-	dstApiPath := filepath.Join(config.TargetDir, apiDir)
-
-	srcApiPath := filepath.Join(srcRoot, apiDir)
-	srcApiDirEntries, err := srcFilesystem.ReadDir(srcApiPath)
-	if err != nil {
-		return errors.Wrapf(err, "failed to read src api dir %s", srcApiPath)
-	}
-
-	for _, srcApiDirEntry := range srcApiDirEntries {
-		if srcApiDirEntry.IsDir() && strings.HasPrefix(srcApiDirEntry.Name(), "v") {
-			apiVersionName := srcApiDirEntry.Name()
-			srcApiVersionDirPath := filepath.Join(srcApiPath, apiVersionName)
-			if config.DebugMode {
-				log.Printf("Found API version %s", apiVersionName)
-			}
-
-			// Copy API version directory
-			dstApiVersionDirPath := filepath.Join(dstApiPath, apiVersionName)
-			err = copyDirectory(srcApiVersionDirPath, dstApiVersionDirPath)
-			if err != nil {
-				return errors.Wrapf(err, "failed to copy api version from %s to %s", srcApiVersionDirPath, dstApiVersionDirPath)
-			}
-		} else {
-			if config.DebugMode {
-				log.Printf("Skipping entry %s", srcApiDirEntry.Name())
+				// Copy API version directory
+				dstApiVersionDirPath := filepath.Join(dstApiPath, apiVersionName)
+				err = copyDirectory(srcApiVersionDirPath, dstApiVersionDirPath)
+				if err != nil {
+					return errors.Wrapf(err, "failed to copy api version from %s to %s", srcApiVersionDirPath, dstApiVersionDirPath)
+				}
+			} else {
+				if config.DebugMode {
+					log.Printf("Skipping entry %s", srcApiDirEntry.Name())
+				}
 			}
 		}
 	}
@@ -160,6 +151,14 @@ func copyFile(srcPath, dstPath string) (err error) {
 	srcFileInfo, err := srcFilesystem.Stat(srcPath)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get stat for file %s", srcPath)
+	}
+
+	// Exclude files based on glob pattern
+	for _, exclude := range config.ExcludeGlobs {
+		g := glob.MustCompile(exclude)
+		if g.Match(srcFileInfo.Name()) {
+			return nil
+		}
 	}
 
 	// Opening source file for reading. This file can be stored in memory-based

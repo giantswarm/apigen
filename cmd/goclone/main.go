@@ -1,72 +1,69 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/apigen"
 )
 
 var config = apigen.Config{}
 
-func main() {
-	localRepoPtr := flag.String("local-repo", "", "local repository")
-	orgPtr := flag.String("org", "kubernetes-sigs", "GitHub organization name")
-	repoPtr := flag.String("repo", "cluster-api", "GitHub repo name")
-	tagPtr := flag.String("tag", "", "Project version (GitHub release/tag name)")
-	debugPtr := flag.Bool("debug", false, "Run in debug mode")
-	targetDirPtr := flag.String("target-dir", "", "Where to generate code")
-	flag.Parse()
+var rootCmd = &cobra.Command{
+	Use: "goclone",
+	Example: `
+  # Copy from a remote GitHub repo
+  goclone --org kubernetes-sigs --repo cluster-api --tag v1.0.2 --target-dir ./out/
 
-	if debugPtr != nil && *debugPtr {
-		config.DebugMode = true
-	} else {
-		config.DebugMode = false
-	}
+  # Copy from a local repo
+  goclone --local-repo ../cluster-api --target-dir ./out/
 
-	if localRepoPtr != nil && *localRepoPtr != "" {
-		config.LocalRepo = *localRepoPtr
-	} else if orgPtr != nil && repoPtr != nil {
-		if *orgPtr == "" {
-			printError(errors.New("Flag 'org' cannot must be set"))
-			return
-		}
-		config.Org = *orgPtr
+	# Ignore files matching pattern
+  goclone --local-repo ../cluster-api --target-dir ./out/ --exclude "*_test.go" --exclude "doc.go"
 
-		if *repoPtr == "" {
-			printError(errors.New("Flag 'repo' cannot must be set"))
-			return
-		}
-		config.Repo = *repoPtr
-
-		if tagPtr != nil && *tagPtr != "" {
-			config.Tag = *tagPtr
-		}
-	}
-
-	if targetDirPtr != nil && *targetDirPtr != "" {
-		if _, err := os.Stat(*targetDirPtr); os.IsNotExist(err) {
-			printError(errors.Errorf("Target directory %s not found", *targetDirPtr))
-			return
+  # Copy additional directories
+  goclone --org kubernetes-sigs --repo cluster-api-provider-aws --tag v1.0.0 --target-dir ./out --additional-dir exp/api`,
+	SilenceUsage: true,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if config.LocalRepo == "" {
+			cmd.MarkFlagRequired("org")
+			cmd.MarkFlagRequired("repo")
 		}
 
-		config.TargetDir = *targetDirPtr
-	}
+		if config.TargetDir != "" {
+			if _, err := os.Stat(config.TargetDir); os.IsNotExist(err) {
+				return errors.Errorf("Target directory %s not found", config.TargetDir)
+			}
+		}
 
-	err := apigen.Clone(config)
-	if err != nil {
-		printError(err)
-	}
+		return nil
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return apigen.Clone(config)
+	},
 }
 
-func printError(err error) {
-	if config.DebugMode {
-		log.Fatal(err)
-	} else {
-		fmt.Println(err.Error())
+func init() {
+	rootCmd.Flags().StringVar(&config.LocalRepo, "local-repo", "", "the local repository")
+	rootCmd.Flags().StringVar(&config.Org, "org", "", "the GitHub organization name")
+	rootCmd.Flags().StringVar(&config.Repo, "repo", "", "the GitHub repo name")
+	rootCmd.Flags().StringVar(&config.Tag, "tag", "", "Project version (GitHub release/tag name)")
+	rootCmd.Flags().StringVar(&config.TargetDir, "target-dir", "", "Where to generate code")
+	rootCmd.Flags().StringArrayVar(&config.AdditionalDirs, "additional-dir", []string{}, "additional directories to copy from source repo")
+	rootCmd.Flags().StringArrayVar(&config.ExcludeGlobs, "exclude", []string{}, "glob patterns to exclude")
+	rootCmd.Flags().BoolVar(&config.DebugMode, "debug", false, "Run in debug mode")
+}
+
+func main() {
+	if err := rootCmd.Execute(); err != nil {
+		if config.DebugMode {
+			log.Fatal(err)
+		} else {
+			fmt.Println(err.Error())
+		}
 	}
 }

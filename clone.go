@@ -32,8 +32,14 @@ var (
 	srcFilesystem billy.Filesystem
 )
 
-func Clone(c Config) error {
-	var err error
+func Clone(c Config) (err error) {
+	defer func() {
+		werr := writeLockfile()
+		if err != nil {
+			err = werr
+		}
+	}()
+
 	config = c
 
 	if config.UseLocalRepo() {
@@ -204,6 +210,12 @@ func copyFile(srcPath, dstPath string) (err error) {
 	err = os.WriteFile(dstPath, srcFileContents, 0666)
 	if err != nil {
 		return errors.Wrapf(err, "failed to copy file %s to %s", srcPath, dstPath)
+	}
+
+	// add generated file to lockfile
+	err = addGeneratedFileToLockfile(dstPath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to add generated file %s to lockfile", dstPath)
 	}
 
 	return nil

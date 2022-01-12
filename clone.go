@@ -53,7 +53,7 @@ func Clone(c Config) error {
 
 		_, err := git.Clone(memStorage, srcFilesystem, &cloneOptions)
 		if err != nil {
-			panic(err)
+			return errors.Wrapf(err, "failed to clone git repo %s into memory", cloneOptions.URL)
 		}
 	}
 
@@ -76,7 +76,12 @@ func Clone(c Config) error {
 	}
 
 	dirs := append(config.AdditionalDirs, "api")
+
 	for _, dir := range dirs {
+		if config.DebugMode {
+			log.Printf("Copying API dir %s", dir)
+		}
+
 		// Generate API directory in target project where we are calling `go generate`
 		dstApiPath := filepath.Join(config.TargetDir, dir)
 
@@ -96,6 +101,10 @@ func Clone(c Config) error {
 
 				// Copy API version directory
 				dstApiVersionDirPath := filepath.Join(dstApiPath, apiVersionName)
+				if config.DebugMode {
+					log.Printf("Copying API version dir %s to %s", srcApiVersionDirPath, dstApiVersionDirPath)
+				}
+
 				err = copyDirectory(srcApiVersionDirPath, dstApiVersionDirPath)
 				if err != nil {
 					return errors.Wrapf(err, "failed to copy api version from %s to %s", srcApiVersionDirPath, dstApiVersionDirPath)
@@ -117,6 +126,10 @@ func Clone(c Config) error {
 }
 
 func copyDirectory(srcDirPath, dstDirPath string) error {
+	if config.DebugMode {
+		log.Printf("Copying dir %s to %s", srcDirPath, dstDirPath)
+	}
+
 	err := os.MkdirAll(dstDirPath, os.ModePerm)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create directory with path %s", dstDirPath)

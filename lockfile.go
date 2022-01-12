@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -15,7 +17,12 @@ type Lockfile struct {
 var lockfile Lockfile = Lockfile{}
 
 func addGeneratedFileToLockfile(path string) error {
+	path = strings.TrimPrefix(path, config.TargetDir)
+	path = strings.TrimPrefix(path, "/")
+
 	lockfile.Generated = append(lockfile.Generated, path)
+	sort.Strings(lockfile.Generated)
+
 	return nil
 }
 

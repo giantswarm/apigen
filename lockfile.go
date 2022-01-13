@@ -40,3 +40,20 @@ func writeLockfile() error {
 
 	return nil
 }
+
+func deleteGeneratedFiles() error {
+	for _, file := range lockfile.Generated {
+		err := os.Remove(file)
+		if err != nil {
+			return errors.Wrapf(err, "failed to delete file '%s'", file)
+		}
+	}
+
+	lockfile.Generated = []string{}
+	err := writeLockfile()
+	if err != nil {
+		return errors.Wrap(err, "failed to write empty lockfile")
+	}
+
+	return nil
+}

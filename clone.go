@@ -35,10 +35,10 @@ var (
 func Clone(c Config) (err error) {
 	config = c
 
-	err = deleteGeneratedFiles()
-	if err != nil {
-		return errors.Wrapf(err, "failed to delete previously generated files")
-	}
+	// err = deleteGeneratedFiles()
+	// if err != nil {
+	// 	return errors.Wrapf(err, "failed to delete previously generated files")
+	// }
 
 	defer func() {
 		werr := writeLockfile()

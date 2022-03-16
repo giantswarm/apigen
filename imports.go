@@ -110,7 +110,7 @@ func copyLocalPackage(localPackage string) error {
 	srcPackagePath := filepath.Join(srcRoot, relativePackagePath)
 	dstPackagePath := filepath.Join(config.TargetDir, relativePackagePath)
 
-	err := copyDirectory(srcPackagePath, dstPackagePath)
+	err := copyDirectory(srcPackagePath, dstPackagePath, false)
 	if err != nil {
 		return errors.Wrapf(err, "failed to copy package from %s to %s", srcPackagePath, dstPackagePath)
 	}

@@ -116,7 +116,7 @@ func Clone(c Config) (err error) {
 					log.Printf("Copying API version dir %s to %s", srcApiVersionDirPath, dstApiVersionDirPath)
 				}
 
-				err = copyDirectory(srcApiVersionDirPath, dstApiVersionDirPath)
+				err = copyDirectory(srcApiVersionDirPath, dstApiVersionDirPath, true)
 				if err != nil {
 					return errors.Wrapf(err, "failed to copy api version from %s to %s", srcApiVersionDirPath, dstApiVersionDirPath)
 				}
@@ -136,7 +136,7 @@ func Clone(c Config) (err error) {
 	return nil
 }
 
-func copyDirectory(srcDirPath, dstDirPath string) error {
+func copyDirectory(srcDirPath, dstDirPath string, includeSubdirectories bool) error {
 	if config.DebugMode {
 		log.Printf("Copying dir %s to %s", srcDirPath, dstDirPath)
 	}
@@ -156,9 +156,11 @@ func copyDirectory(srcDirPath, dstDirPath string) error {
 		dstEntryPath := filepath.Join(dstDirPath, entry.Name())
 
 		if entry.IsDir() {
-			err = copyDirectory(srcEntryPath, dstEntryPath)
-			if err != nil {
-				return errors.Wrapf(err, "failed to recursively copy directory %s to %s", srcEntryPath, dstEntryPath)
+			if includeSubdirectories {
+				err = copyDirectory(srcEntryPath, dstEntryPath, true)
+				if err != nil {
+					return errors.Wrapf(err, "failed to recursively copy directory %s to %s", srcEntryPath, dstEntryPath)
+				}
 			}
 		} else {
 			err = copyFile(srcEntryPath, dstEntryPath)

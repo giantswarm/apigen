@@ -105,6 +105,10 @@ func Clone(c Config) (err error) {
 		for _, srcApiDirEntry := range srcApiDirEntries {
 			if srcApiDirEntry.IsDir() && strings.HasPrefix(srcApiDirEntry.Name(), "v") {
 				apiVersionName := srcApiDirEntry.Name()
+				if !config.ShouldCopyAPIVersion(apiVersionName) {
+					continue
+				}
+
 				srcApiVersionDirPath := filepath.Join(srcApiPath, apiVersionName)
 				if config.DebugMode {
 					log.Printf("Found API version %s", apiVersionName)

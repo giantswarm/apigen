@@ -52,6 +52,7 @@ func init() {
 	rootCmd.Flags().StringVar(&config.Org, "org", "", "the GitHub organization name")
 	rootCmd.Flags().StringVar(&config.Repo, "repo", "", "the GitHub repo name")
 	rootCmd.Flags().StringVar(&config.Tag, "tag", "", "Project version (GitHub release/tag name)")
+	rootCmd.Flags().StringVar(&config.APIVersion, "api-version", "", "API version to copy. If not specified, it will copy all API versions.")
 	rootCmd.Flags().StringVar(&config.TargetDir, "target-dir", "", "Where to generate code")
 	rootCmd.Flags().StringArrayVar(&config.AdditionalDirs, "additional-dir", []string{}, "additional directories to copy from source repo")
 	rootCmd.Flags().StringArrayVar(&config.ExcludeGlobs, "exclude", []string{}, "glob patterns to exclude")

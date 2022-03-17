@@ -120,7 +120,7 @@ func Clone(c Config) (err error) {
 					log.Printf("Copying API version dir %s to %s", srcApiVersionDirPath, dstApiVersionDirPath)
 				}
 
-				err = copyDirectory(srcApiVersionDirPath, dstApiVersionDirPath, true)
+				err = copyDirectory(srcApiVersionDirPath, dstApiVersionDirPath, false)
 				if err != nil {
 					return errors.Wrapf(err, "failed to copy api version from %s to %s", srcApiVersionDirPath, dstApiVersionDirPath)
 				}

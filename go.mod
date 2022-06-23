@@ -1,12 +1,14 @@
 module github.com/giantswarm/apigen
 
-go 1.17
+go 1.18
 
 require (
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/gobwas/glob v0.2.3
 	github.com/pkg/errors v0.9.1
+	github.com/spf13/cobra v1.5.0
+	golang.org/x/mod v0.5.1
 )
 
 require (
@@ -26,11 +28,6 @@ require (
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
 	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d // indirect
 	golang.org/x/sys v0.0.0-20211205182925-97ca703d548d // indirect
-	gopkg.in/warnings.v0 v0.1.2 // indirect
-)
-
-require (
-	github.com/spf13/cobra v1.3.0
-	golang.org/x/mod v0.5.1
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	gopkg.in/warnings.v0 v0.1.2 // indirect
 )
